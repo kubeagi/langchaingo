@@ -25,7 +25,7 @@ type LLMMathChain struct {
 
 var _ Chain = LLMMathChain{}
 
-func NewLLMMathChain(llm llms.LLM) LLMMathChain {
+func NewLLMMathChain(llm llms.Model) LLMMathChain {
 	p := prompts.NewPromptTemplate(_llmMathPrompt, []string{"question"})
 	c := NewLLMChain(llm, p)
 	return LLMMathChain{
@@ -33,8 +33,7 @@ func NewLLMMathChain(llm llms.LLM) LLMMathChain {
 	}
 }
 
-// Call gets relevant documents from the retriever and gives them to the combine
-// documents chain.
+// Call runs the logic of the LLM Math chain and returns the output.
 func (c LLMMathChain) Call(ctx context.Context, values map[string]any, options ...ChainCallOption) (map[string]any, error) { // nolint: lll
 	question, ok := values["question"].(string)
 	if !ok {
@@ -71,7 +70,7 @@ func (c LLMMathChain) processLLMResult(llmOutput string) (string, error) {
 		expression := textMatch[1]
 		output, err := c.evaluateExpression(expression)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("evaluating expression: %w", err)
 		}
 		return output, nil
 	}
