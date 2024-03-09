@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/gocolly/colly"
 	"github.com/tmc/langchaingo/tools"
@@ -18,17 +19,20 @@ const (
 	DefaultParallels = 2
 	DefaultDelay     = 3
 	DefaultAsync     = true
+
+	DefaultMaxScrapedDataLength = 15000
 )
 
 var ErrScrapingFailed = errors.New("scraper could not read URL, or scraping is not allowed for provided URL")
 
 type Scraper struct {
-	MaxDepth    int
-	Parallels   int
-	Delay       int64
-	Blacklist   []string
-	Async       bool
-	HandleLinks bool
+	MaxDepth             int
+	Parallels            int
+	Delay                int64
+	Blacklist            []string
+	Async                bool
+	HandleLinks          bool
+	MaxScrapedDataLength int
 }
 
 var _ tools.Tool = Scraper{}
@@ -56,7 +60,8 @@ func New(options ...Options) (*Scraper, error) {
 			"download",
 			"redirect",
 		},
-		HandleLinks: false,
+		HandleLinks:          false,
+		MaxScrapedDataLength: DefaultMaxScrapedDataLength,
 	}
 
 	for _, opt := range options {
@@ -218,5 +223,16 @@ func (s Scraper) Call(ctx context.Context, input string) (string, error) {
 		c.Wait()
 	}
 
-	return siteData.String(), nil
+	// Clean the data and limit the data size
+	cleanData := siteData.String()
+	cleanData = strings.Map(func(r rune) rune {
+		if unicode.IsPrint(r) {
+			return r
+		}
+		return -1
+	}, cleanData)
+	if len(cleanData) > s.MaxScrapedDataLength {
+		return cleanData[0:s.MaxScrapedDataLength], nil
+	}
+	return cleanData, nil
 }

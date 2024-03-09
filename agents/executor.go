@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/tmc/langchaingo/callbacks"
 	"github.com/tmc/langchaingo/chains"
@@ -60,6 +59,12 @@ func (e Executor) Call(ctx context.Context, inputValues map[string]any, _ ...cha
 	for i := 0; i < e.MaxIterations; i++ {
 		var finish map[string]any
 		steps, finish, err = e.doIteration(ctx, steps, nameToTool, inputs)
+
+		// Avoid to use the same tool during repeated iteration, or it may cause infinite loop
+		for _, step := range steps {
+			delete(nameToTool, step.Action.Tool)
+		}
+
 		if finish != nil || err != nil {
 			return finish, err
 		}
@@ -128,7 +133,7 @@ func (e Executor) doAction(
 		e.CallbacksHandler.HandleAgentAction(ctx, action)
 	}
 
-	tool, ok := nameToTool[strings.ToUpper(action.Tool)]
+	tool, ok := nameToTool[action.Tool]
 	if !ok {
 		return append(steps, schema.AgentStep{
 			Action:      action,
@@ -195,7 +200,7 @@ func getNameToTool(t []tools.Tool) map[string]tools.Tool {
 
 	nameToTool := make(map[string]tools.Tool, len(t))
 	for _, tool := range t {
-		nameToTool[strings.ToUpper(tool.Name())] = tool
+		nameToTool[tool.Name()] = tool
 	}
 
 	return nameToTool

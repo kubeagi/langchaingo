@@ -113,3 +113,15 @@ func WithHandleLinks(handleLinks bool) Options {
 		o.HandleLinks = handleLinks
 	}
 }
+
+// WithMaxScrapedDataLength sets the max scraped data length option for the Scraper.
+//
+// Default value: 15000
+
+// WithMaxScrapedDataLength: The int value indicating the max scraped data length
+// Returns a function that sets the max scraped data length for the Scraper.
+func WithMaxScrapedDataLength(maxScrapedDataLength int) Options {
+	return func(o *Scraper) {
+		o.MaxScrapedDataLength = maxScrapedDataLength
+	}
+}
