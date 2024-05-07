@@ -244,6 +244,9 @@ func parseStreamingChatResponse(ctx context.Context, r *http.Response, payload *
 				log.Fatalf("unexpected line: %v", line)
 			}
 			data := strings.TrimPrefix(line, "data: ")
+			// Temporary fix for dashscope openai compatible apis
+			// Dashscope stream response has a prefix "data:" instead of "data: " which is short of a white space
+			data = strings.TrimPrefix(data, "data:")
 			if data == "[DONE]" {
 				return
 			}
